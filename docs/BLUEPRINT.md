@@ -4,7 +4,7 @@ Version 2 · 27 October 2026
 
 ## 1. Purpose and delivered scope
 
-Urbanlytics is a public full-stack environmental intelligence workspace. It combines live atmospheric model data, forecast evaluation, city comparison, pollution alerts, explicit policy assumptions, browser-private saved scenarios, and pipeline visibility. No ChatGPT account or sign-in is required by the application.
+Urbanlytics is a public full-stack environmental intelligence workspace. It combines live atmospheric model data, forecast evaluation, city comparison, pollution alerts, explicit policy assumptions, browser-private saved scenarios, and pipeline visibility. No account or sign-in is required by the application.
 
 Delivered: live CAMS and weather data; fourteen days of archived provider history; 72-hour provider outlook; experimental 48-hour predictions; rolling-origin comparison of three predictors; empirical uncertainty envelopes; threshold alerts; anomaly and completeness checks; multi-city comparison; durable snapshots; ingestion metrics and distributed refresh locks; private browser scenario storage; CSV/JSON export; secure OpenAQ and FIRMS adapters; this blueprint.
 
@@ -101,7 +101,7 @@ Release workflow: open the existing Sites source repository; retain project iden
 
 ## 11. Verification and next production milestone
 
-Verify browser A cannot list/delete browser B's scenarios; invalid/cross-origin writes fail; missing provider keys return empty explicitly disconnected feeds; forecasts never train on future pollutant targets; comparison preserves partial failure; collected snapshots come from actual requests; no application links invoke ChatGPT sign-in.
+Verify browser A cannot list/delete browser B's scenarios; invalid/cross-origin writes fail; missing provider keys return empty explicitly disconnected feeds; forecasts never train on future pollutant targets; comparison preserves partial failure; collected snapshots come from actual requests; no application links invoke external sign-in.
 
 Next production milestone: provision and validate station/fire feeds; accumulate months of monitored observations; use issuance-time archived weather; independently backtest by station, season and horizon; calibrate intervals on a disjoint set; add externally monitored ingestion scheduling and incident alerts; load-test against expected traffic; set backup/recovery procedures; obtain an emissions inventory and calibrate dispersion before calling the simulator a digital twin. These are future work, not represented as delivered capabilities.
 

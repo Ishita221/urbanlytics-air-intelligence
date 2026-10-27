@@ -1,6 +1,6 @@
 # Urbanlytics Advanced
 
-Public full-stack air-quality intelligence. No application sign-in or ChatGPT account is required.
+Public full-stack air-quality intelligence. No sign-in is required.
 
 ## Delivered
 
