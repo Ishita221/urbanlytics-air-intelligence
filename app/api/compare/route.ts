@@ -1,0 +1,4 @@
+import { z } from 'zod';
+import { cities } from '@/lib/domain';
+import { getAir,rateLimit,fail } from '@/lib/server';
+export async function GET(request:Request){try{await rateLimit(request,'compare',6);const values=new URL(request.url).searchParams.get('cities')?.split(',');const ids=z.array(z.coerce.number().int().min(0).max(cities.length-1)).min(1).max(6).parse(values);const results=[];for(let i=0;i<ids.length;i+=2){results.push(...await Promise.all([...new Set(ids)].slice(i,i+2).map(async id=>{try{const data=await getAir(cities[id]);return {place:cities[id],current:data.current,validAt:data.validAt,cache:data.cache,timezone:data.timezone,error:null};}catch{return {place:cities[id],current:null,error:'Provider data unavailable'};}})));}return Response.json({cities:results,standard:'US AQI from CAMS; city-scale model estimates.'},{headers:{'Cache-Control':'no-store'}});}catch(e){return fail(e);}}

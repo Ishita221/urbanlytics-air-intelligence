@@ -36,13 +36,16 @@ export async function upstream(url:string){
 function nullable(v:unknown):number|null{return typeof v==='number' && Number.isFinite(v)?v:null;}
 const flights=new Map<string,Promise<AirData>>();
 export async function getAir(place:Place):Promise<AirData>{
-  const key=place.latitude.toFixed(3)+','+place.longitude.toFixed(3),db=database(),now=Date.now();
+  const key='v2:'+place.latitude.toFixed(3)+','+place.longitude.toFixed(3),db=database(),now=Date.now();
   const cached=await db.prepare('SELECT payload,fetched_at FROM air_cache WHERE key=?').bind(key).first<{payload:string;fetched_at:number}>();
   if(cached && now-cached.fetched_at<600000)return {...JSON.parse(cached.payload),place,cache:'cached'};
   const pending=flights.get(key);if(pending)return {...await pending,place};
   const flight=(async()=>{
+    const token=crypto.randomUUID();
+    const lease=await db.prepare('INSERT INTO ingestion_leases (key,token,expires) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET token=excluded.token,expires=excluded.expires WHERE expires < ? RETURNING key').bind(key,token,now+60000,now).first();
+    if(!lease){if(cached && now-cached.fetched_at<6*3600000)return {...JSON.parse(cached.payload),place,cache:'stale' as const,warning:'Refresh already in progress. Showing the previous stored response.'};throw new ApiError(503,'Another request is collecting this city. Please retry in a few seconds.');}
     try{
-      const query=new URLSearchParams({latitude:place.latitude.toFixed(3),longitude:place.longitude.toFixed(3),timezone:'auto',timeformat:'unixtime',past_days:'7',forecast_days:'5'});
+      const query=new URLSearchParams({latitude:place.latitude.toFixed(3),longitude:place.longitude.toFixed(3),timezone:'auto',timeformat:'unixtime',past_days:'14',forecast_days:'5'});
       const aqFields=['us_aqi',...pollutants];const weatherFields=['temperature_2m','relative_humidity_2m','wind_speed_10m'];
       const [airRaw,weatherRaw]=await Promise.all([upstream('https://air-quality-api.open-meteo.com/v1/air-quality?'+query+'&hourly='+aqFields.join(',')),upstream('https://api.open-meteo.com/v1/forecast?'+query+'&hourly='+weatherFields.join(','))]);
       const air=responseSchema.parse(airRaw),weather=responseSchema.parse(weatherRaw),weatherIndex=new Map(weather.hourly.time.map((v,i)=>[v,i]));
@@ -52,8 +55,15 @@ export async function getAir(place:Place):Promise<AirData>{
       const current=hours.filter(h=>h.time<=now/1000 && h.us_aqi!==null).at(-1);if(!current || now/1000-current.time>7200)throw new Error('No timely current values');
       const data:AirData={place,fetchedAt:now,validAt:current.time,timezone:air.timezone,current,hours,cache:'fresh',model:trainForecast(hours,current.time),provenance:{provider:'CAMS / Open-Meteo',type:'Atmospheric model output; not a ground-station measurement',resolution:'Global CAMS ~45 km; Europe ~11 km. Interpolated hourly.',aqiStandard:'US AQI (provider supplied); not CPCB India AQI',url:'https://open-meteo.com/en/docs/air-quality-api'}};
       await db.prepare('INSERT INTO air_cache (key,payload,fetched_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at').bind(key,JSON.stringify(data),now).run();
+      await db.batch([
+        db.prepare('INSERT INTO snapshots (id,location_key,name,valid_at,retrieved_at,payload) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET retrieved_at=excluded.retrieved_at,payload=excluded.payload').bind(key+':'+current.time,key,place.name,current.time,now,JSON.stringify(current)),
+        db.prepare('INSERT INTO ingestion_runs (id,location_key,status,started_at,duration_ms) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),key,'success',now,Date.now()-now),
+        db.prepare('DELETE FROM snapshots WHERE retrieved_at < ?').bind(now-30*86400000),
+        db.prepare('DELETE FROM ingestion_runs WHERE started_at < ?').bind(now-30*86400000),
+      ]);
       return data;
-    }catch(error){if(cached && now-cached.fetched_at<6*3600000)return {...JSON.parse(cached.payload),place,cache:'stale' as const,warning:'Provider unavailable. Showing a stored response; check its timestamp.'};if(error instanceof z.ZodError)throw new ApiError(502,'The provider returned an invalid data response.');throw error;}
+    }catch(error){await db.prepare('INSERT INTO ingestion_runs (id,location_key,status,started_at,duration_ms) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),key,'failure',now,Date.now()-now).run().catch(()=>{});if(cached && now-cached.fetched_at<6*3600000)return {...JSON.parse(cached.payload),place,cache:'stale' as const,warning:'Provider unavailable. Showing a stored response; check its timestamp.'};if(error instanceof z.ZodError)throw new ApiError(502,'The provider returned an invalid data response.');throw error;}
+    finally{await db.prepare('DELETE FROM ingestion_leases WHERE key=? AND token=?').bind(key,token).run();}
   })();
   flights.set(key,flight);try{return await flight;}finally{flights.delete(key);}
 }

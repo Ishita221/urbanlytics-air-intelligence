@@ -9,7 +9,8 @@ export const cities: Place[] = [
 ];
 export const pollutants = ['pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone', 'sulphur_dioxide', 'carbon_monoxide'] as const;
 export type Hour = { time: number; us_aqi: number | null; pm2_5: number | null; pm10: number | null; nitrogen_dioxide: number | null; ozone: number | null; sulphur_dioxide: number | null; carbon_monoxide: number | null; temperature_2m: number | null; relative_humidity_2m: number | null; wind_speed_10m: number | null };
-export type ModelResult = { method: string; samples: number; mae: number | null; persistenceMae: number | null; points: { time: number; pm2_5: number }[] };
+export type Validation = { horizon:number; folds:number; ridgeMae:number|null; persistenceMae:number|null; seasonalMae:number|null; selectedMae:number|null; radius80:number|null };
+export type ModelResult = { method: string; samples: number; mae: number | null; persistenceMae: number | null; selected?:string; validation?:Validation[]; points: { time: number; pm2_5: number; lower?:number|null; upper?:number|null }[] };
 export type AirData = { place: Place; fetchedAt: number; validAt: number; timezone: string; current: Hour; hours: Hour[]; cache: 'fresh' | 'cached' | 'stale'; warning?: string; model: ModelResult; provenance: { provider: string; type: string; resolution: string; aqiStandard: string; url: string } };
 export function aqiCategory(aqi: number | null) {
   if (aqi === null || !Number.isFinite(aqi)) return { label: 'Unavailable', color: '#87928e' };
