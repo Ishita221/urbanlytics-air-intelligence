@@ -1,6 +1,12 @@
 # Urbanlytics Advanced
 
+Default demonstration city: Lucknow, Uttar Pradesh, India (26.8467 N, 80.9462 E). The city selector still supports other locations. The policy simulator always uses the selected city’s current model baseline.
+
 Public full-stack air-quality intelligence. No sign-in is required.
+
+## Running demo
+
+[Watch the Lucknow demo](public/demo.mp4). It records actual navigation and slider changes with narration. [Narration and scenario details](docs/DEMO_SCRIPT.md).
 
 ## Delivered
 

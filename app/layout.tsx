@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Urbanlytics | Air Intelligence",
+  title: "Urbanlytics | Lucknow Air Intelligence",
   description: "Live city air quality, transparent forecasting and evidence-aware policy simulation.",
   icons: {
     icon: "/favicon.svg",

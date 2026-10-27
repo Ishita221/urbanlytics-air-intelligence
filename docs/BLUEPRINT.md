@@ -1,5 +1,7 @@
 # Urbanlytics Advanced — Project Blueprint
 
+Default demonstration city: Lucknow, Uttar Pradesh, India (26.8467 N, 80.9462 E). The city selector still supports other locations. The policy simulator always uses the selected city’s current model baseline.
+
 Version 2 · 27 October 2026
 
 ## 1. Purpose and delivered scope
